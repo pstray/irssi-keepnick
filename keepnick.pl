@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.13 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.14 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -173,8 +173,13 @@ sub sig_message_own_nick {
 sub sig_message_own_nick_block {
     my($server,$new,$old,$addr) = @_;
     Irssi::signal_stop();
-    server_printformat($server, MSGLEVEL_NICKS | MSGLEVEL_NO_ACT,
-		       'keepnick_got_nick', $new, $server->{chatnet});
+    if (Irssi::settings_get_bool('keepnick_quiet')) {
+	Irssi::printformat(MSGLEVEL_NICKS | MSGLEVEL_NO_ACT,
+			   'keepnick_got_nick', $new, $server->{chatnet});
+    } else {
+	server_printformat($server, MSGLEVEL_NICKS | MSGLEVEL_NO_ACT,
+			   'keepnick_got_nick', $new, $server->{chatnet});
+    }
 }
 
 # --------[ sig_message_quit ]------------------------------------------
@@ -343,6 +348,7 @@ sub cmd_nick {
 # --------[ Register settings ]-----------------------------------------
 
 Irssi::settings_add_bool('keepnick', 'keepnick_autosave', 1);
+Irssi::settings_add_bool('keepnick', 'keepnick_quiet', 0);
 
 # --------[ Register formats ]------------------------------------------
 
