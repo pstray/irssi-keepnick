@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.12 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.13 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -121,6 +121,7 @@ sub server_printformat {
     my($emitted) = 0;
     for my $win (Irssi::windows) {
 	for my $item ($win->items) {
+	    next unless ref $item;
 	    if ($item->{server}{chatnet} eq $server->{chatnet}) {
 		$item->printformat($level,$format,@params);
 		$emitted++;
