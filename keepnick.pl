@@ -3,7 +3,7 @@
 #
 
 use strict;
-use Irssi;
+use Irssi 20011118.1727;
 use Irssi::Irc;
 
 # ======[ Variables ]===================================================
