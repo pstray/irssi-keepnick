@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2001 by Peder Stray <peder@ninja.no>
+# Copyright (C) 2001-2002 by Peder Stray <peder@ninja.no>
 #
 
 use strict;
@@ -13,6 +13,18 @@ my(%getnick);		# nicks we are currently waiting for
 my(%inactive);		# inactive chatnets
 
 # ======[ Helper functions ]============================================
+
+# --------[ change_nick ]-----------------------------------------------
+
+sub change_nick {
+    my($server,$nick) = @_;
+    $server->redirect_event('keepnick nick', 1, ":$nick", -1, undef,
+			    {
+			     "event nick" => "redir keepnick nick",
+			     "" => "event empty",
+			    });
+    $server->send_raw("NICK :$nick");
+}
 
 # --------[ check_nick ]------------------------------------------------
 
@@ -36,31 +48,10 @@ sub check_nick {
 	    delete $getnick{$net};
 	    next;
 	}
+	$server->redirect_event('keepnick ison', 1, '', -1, undef,
+				{ "event 303" => "redir keepnick ison" });
 	$server->send_raw("ISON :$nick");
-	Irssi::signal_add_first("event 303", "sig_ison");
     }
-}
-
-# --------[ save_nicks ]------------------------------------------------
-
-sub save_nicks {
-    my($auto) = @_;
-    my($file) = Irssi::get_irssi_dir."/keepnick";
-    my($count) = 0;
-    local(*CONF);
-
-    return if $auto && !Irssi::settings_get_bool('keepnick_autosave');
-
-    open CONF, "> $file";
-    for my $net (sort keys %keepnick) {
-	print CONF "$net\t$keepnick{$net}\n";
-	$count++;
-    }
-    close CONF;
-
-    Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_crap',
-		       "Saved $count nicks to $file")
-	unless $auto;
 }
 
 # --------[ load_nicks ]------------------------------------------------
@@ -85,45 +76,63 @@ sub load_nicks {
 		       "Loaded $count nicks from $file");
 }
 
+# --------[ save_nicks ]------------------------------------------------
+
+sub save_nicks {
+    my($auto) = @_;
+    my($file) = Irssi::get_irssi_dir."/keepnick";
+    my($count) = 0;
+    local(*CONF);
+
+    return if $auto && !Irssi::settings_get_bool('keepnick_autosave');
+
+    open CONF, "> $file";
+    for my $net (sort keys %keepnick) {
+	print CONF "$net\t$keepnick{$net}\n";
+	$count++;
+    }
+    close CONF;
+
+    Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_crap',
+		       "Saved $count nicks to $file")
+	unless $auto;
+}
+
+# --------[ server_printformat ]----------------------------------------
+
+sub server_printformat {
+    my($server,$level,$format,@params) = @_;
+    my($emitted) = 0;
+    for my $win (Irssi::windows) {
+	for my $item ($win->items) {
+	    if ($item->{server}{chatnet} eq $server->{chatnet}) {
+		$item->printformat($level,$format,@params);
+		$emitted++;
+		last;
+	    }
+	}
+    }
+    $server->printformat(undef,$level,$format,@params)
+	unless $emitted;
+}
+
 # ======[ Signal Hooks ]================================================
 
-# --------[ sig_ison ]--------------------------------------------------
-
-sub sig_ison {
-    my($server,$text) = @_;
-    Irssi::signal_remove("event 303", "sig_ison");
-    my $nick = $getnick{$server->{chatnet}};
-    if ($text !~ /:\Q$nick\E\s?$/i) {
-	$server->send_raw("NICK :$nick");
-    }
-    Irssi::signal_stop();
-}
-
-# --------[ sig_quit ]--------------------------------------------------
-
-# if anyone quits, check if we want their nick.
-sub sig_quit {
-    my($server,$nick) = @_;
-    if (lc $nick eq lc $getnick{$server->{chatnet}}) {
-	$server->send_raw("NICK :$nick");
-    }
-}
-
-# --------[ sig_nick ]--------------------------------------------------
+# --------[ sig_message_nick ]------------------------------------------
 
 # if anyone changes their nick, check if we want their old one.
-sub sig_nick {
+sub sig_message_nick {
     my($server,$newnick,$oldnick) = @_;
     if (lc $oldnick eq lc $getnick{$server->{chatnet}}) {
-	$server->send_raw("NICK :$oldnick")
+	change_nick($server, $oldnick);
     }
 }
 
-# --------[ sig_own_nick ]----------------------------------------------
+# --------[ sig_message_own_nick ]--------------------------------------
 
 # if we change our nick, check it to see if we wanted it and if so
 # remove it from the list.
-sub sig_own_nick {
+sub sig_message_own_nick {
     my($server,$newnick,$oldnick) = @_;
     my($chatnet) = $server->{chatnet};
     if (lc $newnick eq lc $keepnick{$chatnet}) {
@@ -131,14 +140,51 @@ sub sig_own_nick {
 	if ($inactive{$chatnet}) {
 	    delete $inactive{$chatnet};
 	    Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_unhold',
-			       $chatnet);
+			       $newnick, $chatnet);
 	}
     } elsif (lc $oldnick eq lc $keepnick{$chatnet}) {
 	$inactive{$chatnet} = 1;
 	delete $getnick{$chatnet};
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_hold',
-			   $chatnet);
+			   $oldnick, $chatnet);
     }
+}
+
+# --------[ sig_message_own_nick_block ]--------------------------------
+
+sub sig_message_own_nick_block {
+    my($server,$new,$old,$addr) = @_;
+    Irssi::signal_stop();
+    server_printformat($server, MSGLEVEL_NICKS | MSGLEVEL_NO_ACT,
+		       'keepnick_got_nick', $new, $server->{chatnet});
+}
+
+# --------[ sig_message_quit ]------------------------------------------
+
+# if anyone quits, check if we want their nick.
+sub sig_message_quit {
+    my($server,$nick) = @_;
+    if (lc $nick eq lc $getnick{$server->{chatnet}}) {
+	change_nick($server, $nick);
+    }
+}
+
+# --------[ sig_redir_keepnick_ison ]-----------------------------------
+
+sub sig_redir_keepnick_ison {
+    my($server,$text) = @_;
+    my $nick = $getnick{$server->{chatnet}};
+    change_nick($server, $nick)
+      unless $text =~ /:\Q$nick\E\s?$/i;
+}
+
+# --------[ sig_redir_keepnick_nick ]-----------------------------------
+
+sub sig_redir_keepnick_nick {
+    my($server,$args,$nick,$addr) = @_;
+    Irssi::signal_add_first('message own_nick', 'sig_message_own_nick_block');
+    Irssi::signal_emit('event nick', @_);
+    Irssi::signal_remove('message own_nick', 'sig_message_own_nick_block');
 }
 
 # --------[ sig_setup_reread ]------------------------------------------
@@ -206,7 +252,7 @@ sub cmd_keepnick {
     if ($inactive{$chatnet}) {
 	delete $inactive{$chatnet};
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_unhold',
-			   $chatnet);
+			   $nick, $chatnet);
     }
 
     Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_add', $nick,
@@ -285,10 +331,10 @@ Irssi::theme_register(
  '{line_start}{hilight Keepnick:} Stopped trying to keep {nick $0} on [$1]',
 
  'keepnick_hold',
- '{line_start}{hilight Keepnick:} Nickkeeping deactivated on [$0]',
+ '{line_start}{hilight Keepnick:} Nickkeeping deactivated on [$1]',
 
  'keepnick_unhold',
- '{line_start}{hilight Keepnick:} Nickkeeping reactivated on [$0]',
+ '{line_start}{hilight Keepnick:} Nickkeeping reactivated on [$1]',
 
  'keepnick_list_empty',
  '{line_start}{hilight Keepnick:} No nicks in keep list',
@@ -301,13 +347,20 @@ Irssi::theme_register(
 
  'keepnick_list_footer',
  '',
+
+ 'keepnick_got_nick',
+ '{hilight Keepnick:} Nickstealer left [$1], got {nick $0} back',
+
 ]);
 
 # --------[ Register signals ]------------------------------------------
 
-Irssi::signal_add('message quit', 'sig_quit');
-Irssi::signal_add('message nick', 'sig_nick');
-Irssi::signal_add('message own_nick', 'sig_own_nick');
+Irssi::signal_add('message quit', 'sig_message_quit');
+Irssi::signal_add('message nick', 'sig_message_nick');
+Irssi::signal_add('message own_nick', 'sig_message_own_nick');
+
+Irssi::signal_add('redir keepnick ison', 'sig_redir_keepnick_ison');
+Irssi::signal_add('redir keepnick nick', 'sig_redir_keepnick_nick');
 
 Irssi::signal_add('setup saved', 'sig_setup_save');
 Irssi::signal_add('setup reread', 'sig_setup_reread');
@@ -321,6 +374,26 @@ Irssi::command_bind("listnick", "cmd_listnick");
 # --------[ Register timers ]-------------------------------------------
 
 Irssi::timeout_add(12000, 'check_nick', '');
+
+# --------[ Register redirects ]----------------------------------------
+
+Irssi::Irc::Server::redirect_register('keepnick ison', 0, 0,
+			 undef,
+			 {
+			  "event 303" => -1,
+			 },
+			 undef );
+
+Irssi::Irc::Server::redirect_register('keepnick nick', 0, 0,
+			 undef,
+			 {
+			  "event nick" => 0,
+			  "event 432" => -1,	# ERR_ERRONEUSNICKNAME
+			  "event 433" => -1,	# ERR_NICKNAMEINUSE
+			  "event 437" => -1,	# ERR_UNAVAILRESOURCE
+			  "event 484" => -1,	# ERR_RESTRICTED
+			 },
+			 undef );
 
 # --------[ Load config ]-----------------------------------------------
 
