@@ -6,6 +6,18 @@ use strict;
 use Irssi 20011118.1727;
 use Irssi::Irc;
 
+# ======[ Script Header ]===============================================
+
+# Irssi Script Header 1.0
+# Name:		keepnick
+# Authors:	Peder Stray <peder@ninja.no>
+# URL:		http://ninja.no/irssi/keepnick.pl
+# License:	GPL
+# Date:		$Date: 2002/01/18 22:27:49 $
+# Version:	$Revision: 1.8 $
+# IrssiVersion:	0.7.98.CVS
+# Description:	Try to get your nick back when it becomes available.
+
 # ======[ Variables ]===================================================
 
 my(%keepnick);		# nicks we want to keep
