@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.10 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.11 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -24,6 +24,7 @@ use vars qw{$VERSION %IRSSI};
 my(%keepnick);		# nicks we want to keep
 my(%getnick);		# nicks we are currently waiting for
 my(%inactive);		# inactive chatnets
+my(%manual);		# manual nickchanges
 
 # ======[ Helper functions ]============================================
 
@@ -157,7 +158,8 @@ sub sig_message_own_nick {
 	    Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_unhold',
 			       $newnick, $chatnet);
 	}
-    } elsif (lc $oldnick eq lc $keepnick{$chatnet}) {
+    } elsif (lc $oldnick eq lc $keepnick{$chatnet} &&
+	     lc $newnick eq lc $manual{$chatnet}) {
 	$inactive{$chatnet} = 1;
 	delete $getnick{$chatnet};
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_hold',
@@ -326,6 +328,15 @@ sub cmd_listnick {
     }
 }
 
+# --------[ NICK ]------------------------------------------------------
+
+sub cmd_nick {
+    my($data,$server) = @_;
+    my($nick) = split " ", $data;
+    return unless $server;
+    $manual{$server->{chatnet}} = $nick;
+}
+
 # ======[ Setup ]=======================================================
 
 # --------[ Register settings ]-----------------------------------------
@@ -385,6 +396,7 @@ Irssi::signal_add('setup reread', 'sig_setup_reread');
 Irssi::command_bind("keepnick", "cmd_keepnick");
 Irssi::command_bind("unkeepnick", "cmd_unkeepnick");
 Irssi::command_bind("listnick", "cmd_listnick");
+Irssi::command_bind("nick", "cmd_nick");
 
 # --------[ Register timers ]-------------------------------------------
 
