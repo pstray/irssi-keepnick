@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.14 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.15 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -82,7 +82,7 @@ sub load_nicks {
     while (<CONF>) {
 	my($net,$nick) = split;
 	if ($net && $nick) {
-	    $keepnick{$net} = $nick;
+	    $keepnick{lc $net} = $nick;
 	    $count++;
 	}
     }
@@ -281,7 +281,7 @@ sub cmd_keepnick {
     Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_add', $nick,
 		       $chatnet);
 
-    $keepnick{$chatnet} = $nick;
+    $keepnick{lc $chatnet} = $nick;
 
     save_nicks(1);
     check_nick();
@@ -308,10 +308,10 @@ sub cmd_unkeepnick {
     }
 
     Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_remove',
-		       $keepnick{$chatnet}, $chatnet);
+		       $keepnick{lc $chatnet}, $chatnet);
 
-    delete $keepnick{$chatnet};
-    delete $getnick{$chatnet};
+    delete $keepnick{lc $chatnet};
+    delete $getnick{lc $chatnet};
 
     save_nicks(1);
 }
@@ -321,11 +321,14 @@ sub cmd_unkeepnick {
 # Usage: /LISTNICK
 sub cmd_listnick {
     my(@nets) = sort { lc $a cmp lc $b } keys %keepnick;
+    my $net;
     if (@nets) {
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_list_header');
 	for (@nets) {
+	    $net = Irssi::chatnet_find($_);
 	    Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_list_line',
-			       $keepnick{$_}, $_,
+			       $keepnick{$_},
+			       $net ? $net->{name} : ">$_<",
 			       $inactive{$_}?'inactive':'active');
 	}
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_list_footer');
