@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.9 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.10 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -43,6 +43,8 @@ sub change_nick {
 
 sub check_nick {
     my($server,$net,$nick);
+
+    %getnick = ();	# clear out any old entries
 
     for $net (keys %keepnick) {
 	next if $inactive{$net};
