@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.15 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.16 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -140,8 +140,9 @@ sub server_printformat {
 # if anyone changes their nick, check if we want their old one.
 sub sig_message_nick {
     my($server,$newnick,$oldnick) = @_;
-    if (lc $oldnick eq lc $getnick{$server->{chatnet}}) {
-	change_nick($server, $getnick{$server->{chatnet}});
+    my($chatnet) = lc $server->{chatnet};
+    if (lc $oldnick eq lc $getnick{$chatnet}) {
+	change_nick($server, $getnick{$chatnet});
     }
 }
 
@@ -151,7 +152,7 @@ sub sig_message_nick {
 # remove it from the list.
 sub sig_message_own_nick {
     my($server,$newnick,$oldnick) = @_;
-    my($chatnet) = $server->{chatnet};
+    my($chatnet) = lc $server->{chatnet};
     if (lc $newnick eq lc $keepnick{$chatnet}) {
 	delete $getnick{$chatnet};
 	if ($inactive{$chatnet}) {
@@ -187,8 +188,9 @@ sub sig_message_own_nick_block {
 # if anyone quits, check if we want their nick.
 sub sig_message_quit {
     my($server,$nick) = @_;
-    if (lc $nick eq lc $getnick{$server->{chatnet}}) {
-	change_nick($server, $getnick{$server->{chatnet}});
+    my($chatnet) = lc $server->{chatnet};
+    if (lc $nick eq lc $getnick{$chatnet}) {
+	change_nick($server, $getnick{$chatnet});
     }
 }
 
@@ -196,7 +198,7 @@ sub sig_message_quit {
 
 sub sig_redir_keepnick_ison {
     my($server,$text) = @_;
-    my $nick = $getnick{$server->{chatnet}};
+    my $nick = $getnick{lc $server->{chatnet}};
     change_nick($server, $nick)
       unless $text =~ /:\Q$nick\E\s?$/i;
 }
@@ -272,8 +274,8 @@ sub cmd_keepnick {
     $chatnet ||= $server->{chatnet};
     $nick    ||= $server->{nick};
 
-    if ($inactive{$chatnet}) {
-	delete $inactive{$chatnet};
+    if ($inactive{lc $chatnet}) {
+	delete $inactive{lc $chatnet};
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_unhold',
 			   $nick, $chatnet);
     }
@@ -320,7 +322,7 @@ sub cmd_unkeepnick {
 
 # Usage: /LISTNICK
 sub cmd_listnick {
-    my(@nets) = sort { lc $a cmp lc $b } keys %keepnick;
+    my(@nets) = sort keys %keepnick;
     my $net;
     if (@nets) {
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_list_header');
@@ -343,7 +345,7 @@ sub cmd_nick {
     my($data,$server) = @_;
     my($nick) = split " ", $data;
     return unless $server;
-    $manual{$server->{chatnet}} = $nick;
+    $manual{lc $server->{chatnet}} = $nick;
 }
 
 # ======[ Setup ]=======================================================
