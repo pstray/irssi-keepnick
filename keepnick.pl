@@ -315,6 +315,7 @@ Irssi::signal_add('setup reread', 'sig_setup_reread');
 # --------[ Register commands ]-----------------------------------------
 
 Irssi::command_bind("keepnick", "cmd_keepnick");
+Irssi::command_bind("unkeepnick", "cmd_unkeepnick");
 Irssi::command_bind("listnick", "cmd_listnick");
 
 # --------[ Register timers ]-------------------------------------------
