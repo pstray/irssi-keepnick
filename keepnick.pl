@@ -243,6 +243,8 @@ sub cmd_unkeepnick {
 
     delete $keepnick{$chatnet};
     delete $getnick{$chatnet};
+
+    save_nicks(1);
 }
 
 # --------[ LISTNICK ]--------------------------------------------------
