@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.11 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.12 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -140,7 +140,7 @@ sub server_printformat {
 sub sig_message_nick {
     my($server,$newnick,$oldnick) = @_;
     if (lc $oldnick eq lc $getnick{$server->{chatnet}}) {
-	change_nick($server, $oldnick);
+	change_nick($server, $getnick{$server->{chatnet}});
     }
 }
 
@@ -182,7 +182,7 @@ sub sig_message_own_nick_block {
 sub sig_message_quit {
     my($server,$nick) = @_;
     if (lc $nick eq lc $getnick{$server->{chatnet}}) {
-	change_nick($server, $nick);
+	change_nick($server, $getnick{$server->{chatnet}});
     }
 }
 
