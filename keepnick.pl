@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2001-2002 by Peder Stray <peder@ninja.no>
+# Copyright (C) 2001-2003 by Peder Stray <peder@ninja.no>
 #
 
 use strict;
@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.16 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.17 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -273,6 +273,13 @@ sub cmd_keepnick {
     # lets get the chatnet, and the nick we want
     $chatnet ||= $server->{chatnet};
     $nick    ||= $server->{nick};
+
+    # check that we really have a chatnet
+    unless ($chatnet) {
+	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_crap',
+			   "Unable to find a chatnet");
+	return;
+    }
 
     if ($inactive{lc $chatnet}) {
 	delete $inactive{lc $chatnet};
