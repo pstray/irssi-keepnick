@@ -267,7 +267,7 @@ sub cmd_listnick {
 
 # --------[ Register settings ]-----------------------------------------
 
-Irssi::settings_add_bool('misc', 'keepnick_autosave', 1);
+Irssi::settings_add_bool('keepnick', 'keepnick_autosave', 1);
 
 # --------[ Register formats ]------------------------------------------
 
