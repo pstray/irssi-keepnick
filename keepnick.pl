@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2001-2003 by Peder Stray <peder@ninja.no>
+# Copyright (C) 2001-2013 by Peder Stray <peder@ninja.no>
 #
 
 use strict;
@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.17 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.18 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -59,6 +59,7 @@ sub check_nick {
     for $net (keys %getnick) {
 	$server = Irssi::server_find_chatnet($net);
 	next unless $server;
+	next unless ref($server) eq 'Irssi::Irc::Server'; # this only work on IRC
 	$nick = $getnick{$net};
 	if (lc $server->{nick} eq lc $nick) {
 	    delete $getnick{$net};
