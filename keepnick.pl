@@ -9,7 +9,7 @@ use Irssi::Irc;
 # ======[ Script Header ]===============================================
 
 use vars qw{$VERSION %IRSSI};
-($VERSION) = '$Revision: 1.18 $' =~ / (\d+\.\d+) /;
+($VERSION) = '$Revision: 1.19 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
@@ -278,7 +278,7 @@ sub cmd_keepnick {
     # check that we really have a chatnet
     unless ($chatnet) {
 	Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_crap',
-			   "Unable to find a chatnet");
+			   "Unable to find server network, maybe you forgot /server add before connecting?");
 	return;
     }
 
