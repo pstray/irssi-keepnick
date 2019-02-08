@@ -6,8 +6,6 @@ use strict;
 use Irssi 20011118.1727;
 use Irssi::Irc;
 
-# ======[ Script Header ]===============================================
-
 use vars qw{$VERSION %IRSSI};
 ($VERSION) = '$Revision: 1.19 $' =~ / (\d+\.\d+) /;
 %IRSSI = (
@@ -19,16 +17,10 @@ use vars qw{$VERSION %IRSSI};
 	  description => 'Try to get your nick back when it becomes available.',
 	 );
 
-# ======[ Variables ]===================================================
-
 my(%keepnick);		# nicks we want to keep
 my(%getnick);		# nicks we are currently waiting for
 my(%inactive);		# inactive chatnets
 my(%manual);		# manual nickchanges
-
-# ======[ Helper functions ]============================================
-
-# --------[ change_nick ]-----------------------------------------------
 
 sub change_nick {
     my($server,$nick) = @_;
@@ -39,8 +31,6 @@ sub change_nick {
 			    });
     $server->send_raw("NICK :$nick");
 }
-
-# --------[ check_nick ]------------------------------------------------
 
 sub check_nick {
     my($server,$net,$nick);
@@ -71,8 +61,6 @@ sub check_nick {
     }
 }
 
-# --------[ load_nicks ]------------------------------------------------
-
 sub load_nicks {
     my($file) = Irssi::get_irssi_dir."/keepnick";
     my($count) = 0;
@@ -92,8 +80,6 @@ sub load_nicks {
     Irssi::printformat(MSGLEVEL_CLIENTCRAP, 'keepnick_crap',
 		       "Loaded $count nicks from $file");
 }
-
-# --------[ save_nicks ]------------------------------------------------
 
 sub save_nicks {
     my($auto) = @_;
@@ -115,8 +101,6 @@ sub save_nicks {
 	unless $auto;
 }
 
-# --------[ server_printformat ]----------------------------------------
-
 sub server_printformat {
     my($server,$level,$format,@params) = @_;
     my($emitted) = 0;
@@ -134,10 +118,6 @@ sub server_printformat {
 	unless $emitted;
 }
 
-# ======[ Signal Hooks ]================================================
-
-# --------[ sig_message_nick ]------------------------------------------
-
 # if anyone changes their nick, check if we want their old one.
 sub sig_message_nick {
     my($server,$newnick,$oldnick) = @_;
@@ -146,8 +126,6 @@ sub sig_message_nick {
 	change_nick($server, $getnick{$chatnet});
     }
 }
-
-# --------[ sig_message_own_nick ]--------------------------------------
 
 # if we change our nick, check it to see if we wanted it and if so
 # remove it from the list.
@@ -170,8 +148,6 @@ sub sig_message_own_nick {
     }
 }
 
-# --------[ sig_message_own_nick_block ]--------------------------------
-
 sub sig_message_own_nick_block {
     my($server,$new,$old,$addr) = @_;
     Irssi::signal_stop();
@@ -184,8 +160,6 @@ sub sig_message_own_nick_block {
     }
 }
 
-# --------[ sig_message_quit ]------------------------------------------
-
 # if anyone quits, check if we want their nick.
 sub sig_message_quit {
     my($server,$nick) = @_;
@@ -195,16 +169,12 @@ sub sig_message_quit {
     }
 }
 
-# --------[ sig_redir_keepnick_ison ]-----------------------------------
-
 sub sig_redir_keepnick_ison {
     my($server,$text) = @_;
     my $nick = $getnick{lc $server->{chatnet}};
     change_nick($server, $nick)
       unless $text =~ /:\Q$nick\E\s?$/i;
 }
-
-# --------[ sig_redir_keepnick_nick ]-----------------------------------
 
 sub sig_redir_keepnick_nick {
     my($server,$args,$nick,$addr) = @_;
@@ -213,24 +183,16 @@ sub sig_redir_keepnick_nick {
     Irssi::signal_remove('message own_nick', 'sig_message_own_nick_block');
 }
 
-# --------[ sig_setup_reread ]------------------------------------------
-
 # main setup is reread, so let us do it too
 sub sig_setup_reread {
     load_nicks;
 }
-
-# --------[ sig_setup_save ]--------------------------------------------
 
 # main config is saved, and so we should save too
 sub sig_setup_save {
     my($mainconf,$auto) = @_;
     save_nicks($auto);
 }
-
-# ======[ Commands ]====================================================
-
-# --------[ KEEPNICK ]--------------------------------------------------
 
 # Usage: /KEEPNICK [-net <chatnet>] [<nick>]
 sub cmd_keepnick {
@@ -297,8 +259,6 @@ sub cmd_keepnick {
     check_nick();
 }
 
-# --------[ UNKEEPNICK ]------------------------------------------------
-
 # Usage: /UNKEEPNICK [<chatnet>]
 sub cmd_unkeepnick {
     my($chatnet,$server) = @_;
@@ -326,8 +286,6 @@ sub cmd_unkeepnick {
     save_nicks(1);
 }
 
-# --------[ LISTNICK ]--------------------------------------------------
-
 # Usage: /LISTNICK
 sub cmd_listnick {
     my(@nets) = sort keys %keepnick;
@@ -347,8 +305,6 @@ sub cmd_listnick {
     }
 }
 
-# --------[ NICK ]------------------------------------------------------
-
 sub cmd_nick {
     my($data,$server) = @_;
     my($nick) = split " ", $data;
@@ -356,14 +312,8 @@ sub cmd_nick {
     $manual{lc $server->{chatnet}} = $nick;
 }
 
-# ======[ Setup ]=======================================================
-
-# --------[ Register settings ]-----------------------------------------
-
 Irssi::settings_add_bool('keepnick', 'keepnick_autosave', 1);
 Irssi::settings_add_bool('keepnick', 'keepnick_quiet', 0);
-
-# --------[ Register formats ]------------------------------------------
 
 Irssi::theme_register(
 [
@@ -399,8 +349,6 @@ Irssi::theme_register(
 
 ]);
 
-# --------[ Register signals ]------------------------------------------
-
 Irssi::signal_add('message quit', 'sig_message_quit');
 Irssi::signal_add('message nick', 'sig_message_nick');
 Irssi::signal_add('message own_nick', 'sig_message_own_nick');
@@ -411,18 +359,12 @@ Irssi::signal_add('redir keepnick nick', 'sig_redir_keepnick_nick');
 Irssi::signal_add('setup saved', 'sig_setup_save');
 Irssi::signal_add('setup reread', 'sig_setup_reread');
 
-# --------[ Register commands ]-----------------------------------------
-
 Irssi::command_bind("keepnick", "cmd_keepnick");
 Irssi::command_bind("unkeepnick", "cmd_unkeepnick");
 Irssi::command_bind("listnick", "cmd_listnick");
 Irssi::command_bind("nick", "cmd_nick");
 
-# --------[ Register timers ]-------------------------------------------
-
 Irssi::timeout_add(12000, 'check_nick', '');
-
-# --------[ Register redirects ]----------------------------------------
 
 Irssi::Irc::Server::redirect_register('keepnick ison', 0, 0,
 			 undef,
@@ -442,13 +384,4 @@ Irssi::Irc::Server::redirect_register('keepnick nick', 0, 0,
 			 },
 			 undef );
 
-# --------[ Load config ]-----------------------------------------------
-
 load_nicks;
-
-# ======[ END ]=========================================================
-
-# Local Variables:
-# header-initial-hide: t
-# mode: header-minor
-# end:
