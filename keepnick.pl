@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2001-2013 by Peder Stray <peder@ninja.no>
+# Copyright (C) 2001-2021 by Peder Stray <peder.stray@gmail.com>
 #
 
 use strict;
@@ -11,8 +11,8 @@ use vars qw{$VERSION %IRSSI};
 %IRSSI = (
 	  name        => 'keepnick',
 	  authors     => 'Peder Stray',
-	  contact     => 'peder@ninja.no',
-	  url         => 'http://ninja.no/irssi/keepnick.pl',
+	  contact     => 'peder.stray@gmail.com',
+	  url         => 'https://github.com/pstray/irssi-keepnick',
 	  license     => 'GPL',
 	  description => 'Try to get your nick back when it becomes available.',
 	 );
@@ -67,7 +67,7 @@ sub load_nicks {
     local(*CONF);
 
     %keepnick = ();
-    open CONF, "< $file";
+    open CONF, "<", $file;
     while (<CONF>) {
 	my($net,$nick) = split;
 	if ($net && $nick) {
@@ -89,7 +89,7 @@ sub save_nicks {
 
     return if $auto && !Irssi::settings_get_bool('keepnick_autosave');
 
-    open CONF, "> $file";
+    open CONF, ">", $file;
     for my $net (sort keys %keepnick) {
 	print CONF "$net\t$keepnick{$net}\n";
 	$count++;
